@@ -26,6 +26,11 @@ Open **http://localhost:3000**. The first run downloads the model (~90 MB).
 | `index.html` | The website: search box, top 3 results, and the full document with the matches highlighted |
 | `text.txt` | The document being searched (an article on NeRF) |
 
+## Built with
+
+- **Retrieval pipeline** (`app.py`, steps 1–5): written by me in Python.
+- **Web front end** (`index.html`): built with help from [Claude Code](https://claude.com/claude-code), an AI coding assistant.
+
 ## How it works
 
 1. **Read** `text.txt` into `content`.
