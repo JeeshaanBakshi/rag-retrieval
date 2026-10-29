@@ -6,6 +6,8 @@ Search a document by meaning, not keywords — the retrieval half of RAG, built 
 read text → overlapping chunks → all-MiniLM-L6-v2 embeddings → cosine similarity → top 3
 ```
 
+**Case study:** [jeeshaanbakshi.vercel.app/projects/rag-semantic-search](https://jeeshaanbakshi.vercel.app/projects/rag-semantic-search). The search bar on that site runs this same pipeline (same model) in the browser.
+
 ## Run it
 
 ```bash
