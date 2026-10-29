@@ -14,7 +14,17 @@ document → overlapping chunks → 384-d embeddings → cosine similarity → t
 ```bash
 python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
+```
 
+**Web app** — open http://localhost:3000, ask a question, tune chunk size / overlap / k, or paste your own document:
+
+```bash
+python server.py
+```
+
+**Command line:**
+
+```bash
 python -m rag "How does NeRF represent a 3D scene?"
 ```
 
@@ -41,6 +51,7 @@ Options: `--file`, `--k`, `--size`, `--overlap`. The first run downloads the mod
 | Embed | `rag/pipeline.py` | Encode every chunk in one batch with `all-MiniLM-L6-v2` (SentenceTransformers) → 384-d vectors |
 | Score | `rag/retrieve.py` | Normalize, then one matrix–vector product: cosine similarity in NumPy |
 | Retrieve | `rag/retrieve.py` | Sort scores, return the top-k passages |
+| Serve | `server.py`, `web/index.html` | Standard-library HTTP server + one page; the model loads once and each index is cached |
 
 ## Tuning chunk size and overlap
 
@@ -63,10 +74,10 @@ A higher top score isn't the same as a correct answer; there are no labelled ans
 ## Tests
 
 ```bash
-python -m unittest discover -s tests -v
+python -m unittest discover -s tests -t . -v
 ```
 
-10 tests for chunking, cosine similarity, top-k and the pipeline. They use a tiny fake model, so they run instantly with no download.
+14 tests for chunking, cosine similarity, top-k, the pipeline and the web API. They use a tiny fake model, so they run instantly with no download.
 
 ## Limits
 
