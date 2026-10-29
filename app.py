@@ -116,8 +116,6 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == "/":
             self.send(200, (HERE / "index.html").read_bytes(), "text/html; charset=utf-8")
-        elif self.path == "/api/document":
-            self.send_json(200, {"characters": len(content), "preview": content[:400]})
         else:
             self.send_json(404, {"error": "Not found"})
 

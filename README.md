@@ -21,7 +21,7 @@ Open **http://localhost:3000**. The first run downloads the model (~90 MB).
 | File | What it is |
 |---|---|
 | `app.py` | The pipeline (steps 1–5) and a small web server |
-| `index.html` | The website: about, how it works, live demo |
+| `index.html` | The website: one search box, top 3 results |
 | `text.txt` | The document being searched (an article on NeRF) |
 
 ## How it works
@@ -31,8 +31,6 @@ Open **http://localhost:3000**. The first run downloads the model (~90 MB).
 3. **Load** `all-MiniLM-L6-v2` (SentenceTransformers).
 4. **Embed** every chunk into `chunk_emb` — 384 numbers each.
 5. **Score** the question's embedding `qem` against every chunk with cosine similarity, sort `topscindex` highest first, keep the top 3 as `highl`.
-
-In the demo you can change `size` and `overlap` and see how the chunk count and results change.
 
 ## Example
 
