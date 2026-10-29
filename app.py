@@ -47,7 +47,7 @@ def make_embeddings(cs):
 
 
 # STEP 5: Find the most relevant chunks for a question
-def search(question, cs, chunk_emb):
+def search(question, cs, chunk_emb, size=100, overlap=40):
     qem = model.encode(question).reshape(1, -1)
 
     scores = []
@@ -72,7 +72,9 @@ def search(question, cs, chunk_emb):
     highl = []
 
     for i in topscindex:
-        highl.append({"index": i, "score": round(scores[i], 3), "text": cs[i]})
+        # where chunk i starts in content (same arithmetic as the chunking loop), so the page can highlight it
+        start = 0 if i == 0 else size + (i - 1) * (size - overlap) - overlap
+        highl.append({"index": i, "score": round(scores[i], 3), "text": cs[i], "start": start})
 
     return highl
 
@@ -95,7 +97,7 @@ def run(question, size, overlap):
             "embedding_shape": list(chunk_emb[0].shape),
             "embedding_dimensions": chunk_emb[0].ndim,
         },
-        "highl": search(question, cs, chunk_emb),
+        "highl": search(question, cs, chunk_emb, size, overlap),
     }
 
 
@@ -116,6 +118,8 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == "/":
             self.send(200, (HERE / "index.html").read_bytes(), "text/html; charset=utf-8")
+        elif self.path == "/api/text":
+            self.send_json(200, {"content": content})
         else:
             self.send_json(404, {"error": "Not found"})
 

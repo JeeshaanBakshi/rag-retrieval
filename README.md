@@ -21,7 +21,7 @@ Open **http://localhost:3000**. The first run downloads the model (~90 MB).
 | File | What it is |
 |---|---|
 | `app.py` | The pipeline (steps 1–5) and a small web server |
-| `index.html` | The website: one search box, top 3 results |
+| `index.html` | The website: search box, top 3 results, and the full document with the matches highlighted |
 | `text.txt` | The document being searched (an article on NeRF) |
 
 ## How it works

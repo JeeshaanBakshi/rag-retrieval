@@ -3,84 +3,164 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>RAG Retrieval — Jeeshaan Singh Bakshi</title>
-<meta name="description" content="Search a document by meaning: overlapping chunks, all-MiniLM-L6-v2 embeddings, cosine similarity, top 3.">
+<title>RAG Retrieval</title>
+<meta name="description" content="Semantic search over a document: overlapping chunks, all-MiniLM-L6-v2 embeddings, cosine similarity, top 3 passages highlighted in the source text.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;700&family=Newsreader:ital,opsz,wght@1,6..72,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #f4efe6; --surface: #faf7f0; --ink: #121212; --muted: #4f4c47; --faint: #66625b;
-    --line: #dcd3c4; --line-strong: #c0b6a4; --accent: #a63a0c; --orange: #e8651a; --danger: #a3261b;
+    --bg: #eef1f5; --card: #ffffff; --text: #18212f; --muted: #5a6577; --border: #d9dee7;
+    --blue: #2952cc; --blue-soft: #e7edff;
+    --hl1: #ffe58a; --hl2: #c9ecff; --hl3: #d9f5d0;
+    --radius: 12px; --shadow: 0 1px 2px rgb(24 33 47 / 0.06), 0 4px 16px rgb(24 33 47 / 0.05);
   }
   * { box-sizing: border-box; margin: 0; }
-  body { background: var(--bg); color: var(--ink); font: 16px/1.55 "Inter Tight", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
-  main { max-width: 720px; margin: 0 auto; padding: 56px 16px 64px; }
-  .label { font: 500 0.6875rem/1.4 "JetBrains Mono", monospace; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
-  h1 { font-size: clamp(2.4rem, 9vw, 3.6rem); line-height: 1; letter-spacing: -0.04em; margin-top: 10px; }
-  h1 em { font: italic 400 1em "Newsreader", Georgia, serif; color: var(--accent); }
-  .lede { margin-top: 14px; color: var(--muted); }
-  :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  body { background: var(--bg); color: var(--text); font: 15px/1.6 "IBM Plex Sans", system-ui, sans-serif; }
+  .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; }
+  :focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 
-  form { display: flex; gap: 8px; margin-top: 32px; }
-  input { flex: 1; min-width: 0; font: inherit; background: var(--surface); color: var(--ink); border: 1px solid var(--line-strong); padding: 12px 14px; outline: none; }
-  input:focus { border-color: var(--ink); }
+  .top { background: var(--card); border-bottom: 1px solid var(--border); }
+  .top .in { max-width: 1120px; margin: 0 auto; padding: 14px 16px; display: flex; align-items: center; gap: 10px; }
+  .logo { width: 28px; height: 28px; border-radius: 8px; background: var(--blue); color: #fff; display: grid; place-items: center; font: 600 13px "IBM Plex Mono", monospace; }
+  .top strong { font-weight: 600; }
+  .top span.sub { color: var(--muted); font-size: 0.875rem; }
+
+  .page { max-width: 1120px; margin: 0 auto; padding: 24px 16px 48px; display: grid; gap: 20px; }
+  @media (min-width: 900px) { .page { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; } }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; }
+  h1 { font-size: 1.5rem; font-weight: 600; letter-spacing: -0.01em; }
+  .muted { color: var(--muted); }
+  .steps { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; font-size: 0.75rem; }
+  .steps span { background: var(--blue-soft); color: var(--blue); padding: 3px 9px; border-radius: 999px; }
+
+  form { display: flex; gap: 8px; margin-top: 18px; }
+  input { flex: 1; min-width: 0; font: inherit; padding: 11px 14px; border: 1px solid var(--border); border-radius: 10px; background: #fbfcfe; color: var(--text); outline: none; }
+  input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-soft); }
   button { font: inherit; cursor: pointer; }
-  .btn { background: var(--ink); color: var(--bg); border: 0; padding: 0 22px; font-weight: 500; }
-  .btn:disabled { opacity: 0.6; cursor: progress; }
-  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-  .chip { font: 0.75rem "JetBrains Mono", monospace; border: 1px solid var(--line); background: none; color: var(--muted); padding: 6px 9px; }
-  .chip:hover { border-color: var(--ink); color: var(--ink); }
+  .go { background: var(--blue); color: #fff; border: 0; border-radius: 10px; padding: 0 18px; font-weight: 500; }
+  .go:disabled { opacity: 0.6; cursor: progress; }
+  .examples { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .examples button { background: none; border: 1px solid var(--border); border-radius: 999px; padding: 4px 11px; font-size: 0.8125rem; color: var(--muted); }
+  .examples button:hover { border-color: var(--blue); color: var(--blue); }
 
-  #status { margin-top: 28px; font: 0.75rem "JetBrains Mono", monospace; color: var(--faint); }
-  #status.error { color: var(--danger); }
-  ol { list-style: none; padding: 0; margin-top: 8px; border-top: 1px solid var(--line); }
-  li { display: grid; grid-template-columns: 3.2rem minmax(0, 1fr); gap: 14px; padding: 16px 0; border-bottom: 1px solid var(--line); }
-  .score { font: 500 0.9375rem "JetBrains Mono", monospace; color: var(--accent); }
-  .bar { height: 2px; background: var(--line); margin-top: 6px; }
-  .bar span { display: block; height: 100%; background: var(--orange); }
-  .passage { font: italic 1.15rem/1.45 "Newsreader", Georgia, serif; }
+  #status { margin-top: 18px; font-size: 0.8125rem; color: var(--muted); }
+  #status.error { color: #b42318; }
+  #results { list-style: none; padding: 0; margin-top: 10px; display: grid; gap: 10px; }
+  #results li button { all: unset; box-sizing: border-box; display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 12px; align-items: start; width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 10px; cursor: pointer; }
+  #results li button:hover { border-color: var(--blue); }
+  #results li button:focus-visible { outline: 2px solid var(--blue); }
+  .rank { width: 24px; height: 24px; border-radius: 6px; display: grid; place-items: center; font: 500 12px "IBM Plex Mono", monospace; }
+  .r1 { background: var(--hl1); } .r2 { background: var(--hl2); } .r3 { background: var(--hl3); }
+  .score { font: 500 0.875rem "IBM Plex Mono", monospace; color: var(--blue); }
+  .chunk-no { font-size: 0.75rem; color: var(--muted); }
 
-  footer { margin-top: 48px; font-size: 0.8125rem; color: var(--faint); }
-  footer a { color: inherit; text-underline-offset: 3px; }
+  .doc-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .doc-head h2 { font-size: 1rem; font-weight: 600; }
+  #doc { margin-top: 12px; max-height: 70vh; overflow-y: auto; padding-right: 6px; white-space: pre-wrap; font-size: 0.9375rem; line-height: 1.75; }
+  @media (max-width: 899px) { #doc { max-height: 420px; } }
+  mark { border-radius: 3px; padding: 1px 0; color: inherit; transition: box-shadow 0.3s; }
+  mark.r1 { background: var(--hl1); } mark.r2 { background: var(--hl2); } mark.r3 { background: var(--hl3); }
+  mark.flash { box-shadow: 0 0 0 2px var(--blue); }
+  sup.tag { font: 600 10px "IBM Plex Mono", monospace; color: var(--blue); margin-right: 2px; }
+  .legend { font-size: 0.75rem; color: var(--muted); }
+
+  footer { grid-column: 1 / -1; font-size: 0.8125rem; color: var(--muted); text-align: center; }
+  footer a { color: var(--blue); }
 </style>
 </head>
 <body>
-<main>
-  <p class="label">RAG retrieval · Python</p>
-  <h1>Search a document <em>by meaning.</em></h1>
-  <p class="lede">Chunk → embed with all-MiniLM-L6-v2 → cosine similarity → top 3. Ask the NeRF article a question.</p>
-
-  <form id="ask" role="search">
-    <input id="q" type="search" placeholder="Ask a question…" aria-label="Question" autocomplete="off">
-    <button class="btn" id="go" type="submit">Search</button>
-  </form>
-  <div class="chips" id="examples">
-    <button class="chip" type="button">How does NeRF represent a 3D scene?</button>
-    <button class="chip" type="button">What is volumetric rendering?</button>
+<div class="top">
+  <div class="in">
+    <div class="logo" aria-hidden="true">R</div>
+    <strong>RAG Retrieval</strong>
+    <span class="sub">· semantic search demo</span>
   </div>
+</div>
 
-  <p id="status" aria-live="polite"></p>
-  <ol id="results"></ol>
+<div class="page">
+  <section class="card" aria-labelledby="t">
+    <h1 id="t">Ask the document a question</h1>
+    <p class="muted" style="margin-top:6px">It finds the 3 passages closest in meaning to your question, and highlights them in the document it searches.</p>
+    <div class="steps mono" aria-label="Pipeline">
+      <span>1 chunk · 100 / 40 overlap</span><span>2 embed · MiniLM-L6-v2</span><span>3 cosine similarity</span><span>4 top 3</span>
+    </div>
 
-  <footer>
-    By <a href="https://jeeshaanbakshi.vercel.app">Jeeshaan Singh Bakshi</a> · results are passages from the document, not generated text.
-  </footer>
-</main>
+    <form id="ask" role="search">
+      <input id="q" type="search" placeholder="e.g. How does NeRF represent a 3D scene?" aria-label="Question" autocomplete="off">
+      <button class="go" id="go" type="submit">Search</button>
+    </form>
+    <div class="examples" id="examples" aria-label="Example questions">
+      <button type="button">How does NeRF represent a 3D scene?</button>
+      <button type="button">What is volumetric rendering?</button>
+      <button type="button">What are the limitations?</button>
+    </div>
+
+    <p id="status" aria-live="polite">Try an example, or type your own question.</p>
+    <ol id="results"></ol>
+  </section>
+
+  <section class="card" aria-labelledby="d">
+    <div class="doc-head">
+      <h2 id="d">The data: <span class="mono" style="font-weight:500">text.txt</span></h2>
+      <span class="legend" id="doc-meta">loading…</span>
+    </div>
+    <div id="doc" tabindex="0" aria-label="Document text"></div>
+  </section>
+
+  <footer>Built by <a href="https://jeeshaanbakshi.vercel.app">Jeeshaan Singh Bakshi</a> · results are passages from the document, not generated text</footer>
+</div>
 
 <script>
-  const q = document.getElementById("q"), go = document.getElementById("go");
-  const status = document.getElementById("status"), results = document.getElementById("results");
+  const $ = (id) => document.getElementById(id);
+  const q = $("q"), go = $("go"), status = $("status"), results = $("results"), doc = $("doc");
+  let content = "";
   const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
-  document.getElementById("examples").addEventListener("click", (e) => {
-    if (e.target.matches("button")) { q.value = e.target.textContent; search(); }
-  });
-  document.getElementById("ask").addEventListener("submit", (e) => { e.preventDefault(); search(); });
+  // Draw the document, highlighting each hit's character range (rank 1 wins where hits overlap).
+  function drawDoc(hits = []) {
+    const mark = new Array(content.length).fill(0);
+    [...hits].reverse().forEach((h, i) => {
+      const rank = hits.length - i;
+      for (let c = h.start; c < Math.min(content.length, h.start + h.text.length); c++) mark[c] = rank;
+    });
+    let html = "", i = 0;
+    const firstSeen = new Set();
+    while (i < content.length) {
+      let j = i;
+      while (j < content.length && mark[j] === mark[i]) j++;
+      const part = esc(content.slice(i, j)), r = mark[i];
+      if (r) {
+        const tag = firstSeen.has(r) ? "" : `<sup class="tag">${r}</sup>`;
+        firstSeen.add(r);
+        html += `${tag}<mark class="r${r}" data-rank="${r}">${part}</mark>`;
+      } else html += part;
+      i = j;
+    }
+    doc.innerHTML = html;
+  }
+
+  function jumpTo(rank) {
+    const el = doc.querySelector(`mark[data-rank="${rank}"]`);
+    if (!el) return;
+    doc.scrollTo({ top: el.offsetTop - doc.offsetTop - 40, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    if (innerWidth < 900) doc.scrollIntoView({ block: "start", behavior: "smooth" });
+    doc.querySelectorAll(`mark[data-rank="${rank}"]`).forEach((m) => { m.classList.add("flash"); setTimeout(() => m.classList.remove("flash"), 1200); });
+  }
+
+  fetch("/api/text").then((r) => r.json()).then((d) => {
+    content = d.content;
+    $("doc-meta").textContent = `${content.length.toLocaleString()} characters · an article on NeRF`;
+    drawDoc();
+  }).catch(() => { $("doc-meta").textContent = "couldn't load the document"; });
+
+  $("examples").addEventListener("click", (e) => { if (e.target.matches("button")) { q.value = e.target.textContent; search(); } });
+  $("ask").addEventListener("submit", (e) => { e.preventDefault(); search(); });
+  results.addEventListener("click", (e) => { const b = e.target.closest("button[data-rank]"); if (b) jumpTo(b.dataset.rank); });
 
   async function search() {
     const question = q.value.trim();
-    if (!question) { status.textContent = "Type a question first."; status.className = "error"; return; }
+    if (!question) { status.textContent = "Type a question first."; status.className = "error"; q.focus(); return; }
     go.disabled = true; status.className = ""; status.textContent = "Searching…";
     try {
       const res = await fetch("/api/search", {
@@ -90,12 +170,15 @@
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Search failed.");
-      status.textContent = `Top 3 of ${data.log.total_chunks} chunks`;
-      results.innerHTML = data.highl.map((h) => `
-        <li>
-          <div><div class="score">${h.score.toFixed(3)}</div><div class="bar"><span style="width:${Math.max(0, h.score) * 100}%"></span></div></div>
-          <p class="passage">${esc(h.text.trim())}</p>
-        </li>`).join("");
+      status.textContent = `Top 3 of ${data.log.total_chunks} chunks. Click one to find it in the document.`;
+      results.innerHTML = data.highl.map((h, i) => `
+        <li><button type="button" data-rank="${i + 1}">
+          <span class="rank r${i + 1}">${i + 1}</span>
+          <span>${esc(h.text.trim())}<br><span class="chunk-no mono">chunk ${h.index}</span></span>
+          <span class="score">${h.score.toFixed(3)}</span>
+        </button></li>`).join("");
+      drawDoc(data.highl);
+      if (innerWidth >= 900) jumpTo(1); // phones: results first; tapping one jumps to the text
     } catch (err) {
       status.textContent = err.message; status.className = "error";
     } finally {
