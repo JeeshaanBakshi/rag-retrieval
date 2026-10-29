@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RAG Retrieval — Jeeshaan Singh Bakshi</title>
+<meta name="description" content="A retrieval pipeline in Python: overlapping chunks, all-MiniLM-L6-v2 embeddings, cosine similarity, top 3 passages. With a live demo.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@1,6..72,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f4efe6; --surface: #faf7f0; --ink: #121212; --muted: #4f4c47; --faint: #66625b;
+    --line: #dcd3c4; --line-strong: #c0b6a4; --accent: #a63a0c; --orange: #e8651a; --danger: #a3261b;
+    --dark: #171512; --dark-ink: #f4efe6; --dark-muted: #c9c1b3; --amber: #f5a623;
+    --sans: "Inter Tight", ui-sans-serif, system-ui, sans-serif;
+    --serif: "Newsreader", Georgia, serif;
+    --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+    --ease: cubic-bezier(.22,1,.36,1);
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html { scroll-behavior: smooth; scroll-padding-top: 72px; }
+  body { background: var(--bg); color: var(--ink); font: 16px/1.55 var(--sans); -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
+  @media (min-width: 640px) { .wrap { padding: 0 32px; } }
+  .label { font: 500 0.6875rem/1.4 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
+  a { color: inherit; text-underline-offset: 3px; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  em { font-family: var(--serif); font-style: italic; font-weight: 400; color: var(--accent); }
+
+  /* header */
+  header { position: sticky; top: 0; z-index: 10; background: rgb(244 239 230 / 0.88); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+  header .wrap { display: flex; align-items: center; justify-content: space-between; height: 56px; }
+  header strong { letter-spacing: -0.01em; }
+  nav { display: flex; gap: 20px; font-size: 0.875rem; }
+  nav a { text-decoration: none; color: var(--muted); }
+  nav a:hover { color: var(--ink); }
+  @media (max-width: 480px) { nav a:not(.cta) { display: none; } }
+  .cta { color: var(--ink) !important; font-weight: 500; }
+
+  /* hero */
+  .hero { padding: 64px 0 48px; border-bottom: 1px solid var(--line); }
+  h1 { font-size: clamp(2.6rem, 9vw, 5.2rem); line-height: 0.95; letter-spacing: -0.045em; font-weight: 700; }
+  .lede { margin-top: 18px; max-width: 46ch; font-size: 1.125rem; color: var(--muted); }
+  .facts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 22px; }
+  .tag { font: 0.75rem var(--mono); border: 1px solid var(--line-strong); padding: 3px 8px; background: var(--surface); color: var(--muted); }
+  .buttons { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; min-height: 46px; padding: 0 20px; border: 1px solid var(--ink); font: 500 0.9375rem var(--sans); text-decoration: none; cursor: pointer; background: transparent; color: var(--ink); transition: transform .2s var(--ease); }
+  .btn:hover { transform: translateY(-1px); }
+  .btn.primary { background: var(--ink); color: var(--bg); }
+
+  section.block { padding: 56px 0; border-bottom: 1px solid var(--line); }
+  h2 { font-size: clamp(1.8rem, 5vw, 2.6rem); letter-spacing: -0.035em; line-height: 1.05; font-weight: 700; margin-top: 8px; }
+
+  /* about */
+  .about { display: grid; gap: 28px; margin-top: 28px; }
+  @media (min-width: 760px) { .about { grid-template-columns: repeat(3, 1fr); } }
+  .about h3 { font-size: 1.0625rem; font-weight: 600; margin-top: 6px; }
+  .about p { color: var(--muted); margin-top: 4px; font-size: 0.9375rem; }
+
+  /* steps */
+  .steps { list-style: none; padding: 0; margin-top: 28px; border-top: 1px solid var(--line); }
+  .steps li { display: grid; gap: 10px 28px; padding: 20px 0; border-bottom: 1px solid var(--line); }
+  @media (min-width: 760px) { .steps li { grid-template-columns: 2.5rem 15rem minmax(0, 1fr); align-items: start; } }
+  .steps .n { font: 0.8125rem var(--mono); color: var(--accent); }
+  .steps h3 { font-size: 1.0625rem; font-weight: 600; }
+  .steps p { color: var(--muted); font-size: 0.9375rem; margin-top: 2px; }
+  pre { background: var(--surface); border: 1px solid var(--line); padding: 12px 14px; font: 0.8125rem/1.6 var(--mono); overflow-x: auto; }
+
+  /* demo (dark band) */
+  .demo { background: var(--dark); color: var(--dark-ink); padding: 64px 0; border-radius: 28px 28px 0 0; margin-top: -1px; }
+  .demo .label { color: var(--dark-muted); }
+  .demo h2 em { color: var(--amber); }
+  form { display: flex; gap: 8px; margin-top: 24px; }
+  input[type="search"] { flex: 1; min-width: 0; font: inherit; font-size: 1rem; color: var(--dark-ink); background: #201d19; border: 1px solid #4a4238; padding: 12px 14px; outline: none; }
+  input[type="search"]:focus { border-color: var(--dark-ink); }
+  .demo .btn.primary { background: var(--dark-ink); color: var(--dark); border-color: var(--dark-ink); }
+  .demo .btn:disabled { opacity: 0.6; cursor: progress; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .chip { font: 0.75rem var(--mono); border: 1px solid #4a4238; background: transparent; color: var(--dark-muted); padding: 7px 10px; cursor: pointer; }
+  .chip:hover { border-color: var(--dark-ink); color: var(--dark-ink); }
+
+  .demo-grid { display: grid; gap: 28px; margin-top: 28px; }
+  @media (min-width: 860px) { .demo-grid { grid-template-columns: minmax(0, 1fr) 260px; } }
+  .controls { display: grid; gap: 18px; align-content: start; }
+  .row { display: flex; justify-content: space-between; align-items: baseline; }
+  .val { font: 0.8125rem var(--mono); color: var(--dark-muted); font-variant-numeric: tabular-nums; }
+  input[type="range"] { width: 100%; accent-color: var(--amber); height: 1.5rem; }
+  .log { font: 0.75rem/1.8 var(--mono); color: var(--dark-muted); border-top: 1px solid #2f2a24; padding-top: 14px; }
+  .log b { color: var(--dark-ink); font-weight: 500; }
+
+  #status { font: 0.75rem var(--mono); color: var(--dark-muted); min-height: 1.4em; }
+  #status.error { color: #f29a8f; }
+  #results { list-style: none; padding: 0; margin-top: 10px; border-top: 1px solid #2f2a24; }
+  #results li { display: grid; grid-template-columns: 3.4rem minmax(0, 1fr); gap: 14px; padding: 18px 0; border-bottom: 1px solid #2f2a24; opacity: 0; transform: translateY(8px); animation: rise .5s var(--ease) forwards; }
+  #results li:nth-child(2) { animation-delay: .07s; } #results li:nth-child(3) { animation-delay: .14s; }
+  @keyframes rise { to { opacity: 1; transform: none; } }
+  .score { font: 600 1rem var(--mono); color: var(--amber); font-variant-numeric: tabular-nums; }
+  .bar { height: 3px; background: #2f2a24; margin-top: 8px; }
+  .bar span { display: block; height: 100%; background: var(--orange); }
+  .passage { font-family: var(--serif); font-size: 1.2rem; line-height: 1.45; }
+  .placeholder { padding: 28px 0; color: var(--dark-muted); }
+
+  footer { background: var(--dark); color: var(--dark-muted); border-top: 1px solid #2f2a24; padding: 24px 0 40px; font-size: 0.8125rem; }
+  footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } #results li { animation: none; opacity: 1; transform: none; } .btn { transition: none; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <strong>RAG Retrieval</strong>
+    <nav aria-label="Sections">
+      <a href="#about">About</a>
+      <a href="#how">How it works</a>
+      <a href="#demo" class="cta">Try it →</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="wrap">
+      <p class="label">Project · Jeeshaan Singh Bakshi · 2026</p>
+      <h1>Search a document<br><em>by meaning.</em></h1>
+      <p class="lede">The retrieval half of RAG, built from scratch in Python. Ask a question; get the passages that answer it.</p>
+      <div class="facts">
+        <span class="tag">Python</span><span class="tag">SentenceTransformers</span><span class="tag">all-MiniLM-L6-v2</span><span class="tag">scikit-learn</span>
+      </div>
+      <div class="buttons">
+        <a class="btn primary" href="#demo">Try the demo ↓</a>
+        <a class="btn" href="https://jeeshaanbakshi.vercel.app/projects/rag-semantic-search" target="_blank" rel="noreferrer">Portfolio ↗</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="about">
+    <div class="wrap">
+      <p class="label">About</p>
+      <h2>Keywords miss meaning.</h2>
+      <div class="about">
+        <div><p class="label">Problem</p><h3>Same idea, different words</h3><p>Keyword search can't match "how is the scene stored?" to "implicit volumetric representation".</p></div>
+        <div><p class="label">Built</p><h3>A 5-step retrieval pipeline</h3><p>Chunk the text, turn every chunk into a 384-number vector, rank them against the question.</p></div>
+        <div><p class="label">Insight</p><h3>Retrieval is linear algebra</h3><p>Similar meanings point in similar directions, so cosine similarity finds them.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="how">
+    <div class="wrap">
+      <p class="label">How it works</p>
+      <h2>Five steps, straight from <em>app.py</em>.</h2>
+      <ol class="steps">
+        <li><span class="n">01</span><div><h3>Read the document</h3><p>One text file: an article on NeRF.</p></div>
+<pre>with open("text.txt") as file:
+    content = file.read()</pre></li>
+        <li><span class="n">02</span><div><h3>Split into overlapping chunks</h3><p>Overlap keeps an idea whole when a chunk edge cuts it.</p></div>
+<pre>cs = [content[0:size]]
+for i in range(size, len(content), size - overlap):
+    cs.append(content[i - overlap : i + size - overlap])</pre></li>
+        <li><span class="n">03</span><div><h3>Load the embedding model</h3><p>Similar meanings → similar vectors.</p></div>
+<pre>model = SentenceTransformer("all-MiniLM-L6-v2")</pre></li>
+        <li><span class="n">04</span><div><h3>Embed every chunk</h3><p>Each chunk becomes 384 numbers.</p></div>
+<pre>chunk_emb = [model.encode(chunk) for chunk in cs]</pre></li>
+        <li><span class="n">05</span><div><h3>Score and keep the top 3</h3><p>Cosine similarity between the question and every chunk.</p></div>
+<pre>qem = model.encode(question).reshape(1, -1)
+scores = [cosine_similarity(qem, e.reshape(1, -1))[0][0]
+          for e in chunk_emb]
+topscindex = topscindex[:3]   # after sorting, highest first</pre></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="demo" id="demo">
+    <div class="wrap">
+      <p class="label">Live demo</p>
+      <h2>Ask the <em>NeRF article</em> anything.</h2>
+
+      <form id="ask" role="search">
+        <label for="q" style="position:absolute;left:-9999px">Question</label>
+        <input id="q" type="search" placeholder="e.g. How does NeRF represent a 3D scene?" autocomplete="off">
+        <button class="btn primary" id="go" type="submit">Search</button>
+      </form>
+      <div class="chips" id="examples" aria-label="Example questions">
+        <button class="chip" type="button">How does NeRF represent a 3D scene?</button>
+        <button class="chip" type="button">What is volumetric rendering?</button>
+        <button class="chip" type="button">What is this document about?</button>
+      </div>
+
+      <div class="demo-grid">
+        <div>
+          <p id="status" aria-live="polite">Pick an example or type a question.</p>
+          <ol id="results"><li class="placeholder" style="opacity:1;transform:none;animation:none;display:block">The top 3 passages will appear here, with their cosine similarity.</li></ol>
+        </div>
+
+        <aside class="controls" aria-label="Settings">
+          <div>
+            <div class="row"><label for="size" class="label">size</label><span class="val" id="size-v"></span></div>
+            <input id="size" type="range" min="40" max="400" step="10" value="100">
+          </div>
+          <div>
+            <div class="row"><label for="overlap" class="label">overlap</label><span class="val" id="overlap-v"></span></div>
+            <input id="overlap" type="range" min="0" max="90" step="5" value="40">
+          </div>
+          <div class="log" id="log" aria-live="polite">
+            Total chunks: <b>—</b><br>Last chunk length: <b>—</b><br>First embedding shape: <b>—</b>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Built by <a href="https://jeeshaanbakshi.vercel.app">Jeeshaan Singh Bakshi</a></span>
+    <span>Retrieval only: results are passages from the document, not generated text.</span>
+  </div>
+</footer>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const q = $("q"), go = $("go"), status = $("status"), results = $("results");
+  const size = $("size"), overlap = $("overlap");
+  let busy = false;
+
+  function syncSliders() {
+    overlap.max = String(Number(size.value) - 10);
+    if (Number(overlap.value) >= Number(size.value)) overlap.value = String(Number(size.value) - 10);
+    $("size-v").textContent = size.value;
+    $("overlap-v").textContent = overlap.value;
+  }
+  [size, overlap].forEach((el) => {
+    el.addEventListener("input", syncSliders);
+    el.addEventListener("change", () => q.value.trim() && run());
+  });
+  syncSliders();
+
+  $("examples").addEventListener("click", (e) => {
+    const chip = e.target.closest("button");
+    if (!chip) return;
+    q.value = chip.textContent;
+    run();
+  });
+  $("ask").addEventListener("submit", (e) => { e.preventDefault(); run(); });
+
+  const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+
+  async function run() {
+    const question = q.value.trim();
+    if (!question) { status.textContent = "Type a question first."; status.className = "error"; q.focus(); return; }
+    if (busy) return;
+    busy = true; go.disabled = true; status.className = ""; status.textContent = "Searching…";
+    const t0 = performance.now();
+    try {
+      const res = await fetch("/api/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question, size: Number(size.value), overlap: Number(overlap.value) }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Search failed.");
+      const l = data.log;
+      $("log").innerHTML = `Total chunks: <b>${l.total_chunks}</b><br>Last chunk length: <b>${l.last_chunk_length}</b><br>First embedding shape: <b>(${l.embedding_shape.join(", ")},)</b>`;
+      status.textContent = `Top 3 of ${l.total_chunks} chunks · ${Math.round(performance.now() - t0)} ms`;
+      results.innerHTML = data.highl.map((h) => `
+        <li>
+          <div><div class="score">${h.score.toFixed(3)}</div><div class="bar"><span style="width:${Math.max(0, h.score) * 100}%"></span></div></div>
+          <div><p class="passage">${esc(h.text.trim())}</p><p class="label" style="margin-top:6px">chunk ${h.index}</p></div>
+        </li>`).join("");
+    } catch (err) {
+      status.textContent = err.message; status.className = "error";
+    } finally {
+      busy = false; go.disabled = false;
+    }
+  }
+</script>
+</body>
+</html>
