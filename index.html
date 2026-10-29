@@ -65,6 +65,23 @@
   sup.tag { font: 600 10px "IBM Plex Mono", monospace; color: var(--blue); margin-right: 2px; }
   .legend { font-size: 0.75rem; color: var(--muted); }
 
+  /* case study */
+  .case { grid-column: 1 / -1; }
+  .case-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .case-head h2 { font-size: 1.25rem; font-weight: 600; }
+  .case-head a { color: var(--blue); font-size: 0.875rem; font-weight: 500; text-decoration: none; }
+  .case-head a:hover { text-decoration: underline; }
+  .case-grid { display: grid; gap: 14px; margin-top: 16px; }
+  @media (min-width: 760px) { .case-grid { grid-template-columns: repeat(3, 1fr); } }
+  .tile { border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .tile h3 { font: 500 0.6875rem "IBM Plex Mono", monospace; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+  .tile ol, .tile ul { margin: 8px 0 0; padding-left: 1.1rem; }
+  .tile li { margin-top: 3px; }
+  .tile p { margin-top: 8px; }
+  .pill { display: inline-block; font: 500 0.6875rem "IBM Plex Mono", monospace; padding: 1px 7px; border-radius: 999px; margin-right: 6px; }
+  .pill.bad { background: #fde7e4; color: #b42318; } .pill.ok { background: #e3f6e8; color: #1d6b3a; }
+  .status { display: grid; gap: 14px; margin-top: 14px; }
+  @media (min-width: 760px) { .status { grid-template-columns: 1fr 1fr; } }
   footer { grid-column: 1 / -1; font-size: 0.8125rem; color: var(--muted); text-align: center; }
   footer a { color: var(--blue); }
 </style>
@@ -106,6 +123,42 @@
       <span class="legend" id="doc-meta">loading…</span>
     </div>
     <div id="doc" tabindex="0" aria-label="Document text"></div>
+  </section>
+
+  <section class="card case" aria-labelledby="cs">
+    <div class="case-head">
+      <h2 id="cs">Case study</h2>
+      <a href="https://jeeshaanbakshi.vercel.app/projects/rag-semantic-search" target="_blank" rel="noreferrer">Full write-up on my portfolio ↗</a>
+    </div>
+    <div class="case-grid">
+      <div class="tile">
+        <h3>Built</h3>
+        <ol>
+          <li>Overlapping chunks of the source text</li>
+          <li>384-d embeddings with all-MiniLM-L6-v2</li>
+          <li>Cosine-similarity ranking → top 3</li>
+        </ol>
+      </div>
+      <div class="tile">
+        <h3>Insight</h3>
+        <p>With normalized embeddings, cosine similarity is a dot product. Retrieval is linear algebra.</p>
+      </div>
+      <div class="tile">
+        <h3>Challenge</h3>
+        <p><span class="pill bad">problem</span>Big chunks match vaguely; small chunks lose context.</p>
+        <p><span class="pill ok">fix</span>Tuned chunk size and overlap to balance the two.</p>
+      </div>
+    </div>
+    <div class="status">
+      <div class="tile">
+        <h3>Done</h3>
+        <ul><li>Chunking with overlap</li><li>Embeddings for every chunk</li><li>Cosine similarity → top 3</li><li>This website and live demo</li></ul>
+      </div>
+      <div class="tile">
+        <h3>Next</h3>
+        <ul><li>LLM answers grounded in the retrieved passages</li><li>Evaluation: Recall@k, MRR</li><li>Sentence-aware chunking (fixed-width chunks cut words in half)</li></ul>
+      </div>
+    </div>
   </section>
 
   <footer>Built by <a href="https://jeeshaanbakshi.vercel.app">Jeeshaan Singh Bakshi</a> · results are passages from the document, not generated text</footer>
